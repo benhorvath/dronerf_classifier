@@ -1,0 +1,238 @@
+---
+title: "Algorithm to detect presence of drones using RF signals"
+author: "Ben Horvath"
+date: "6/28/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning=FALSE, message=FALSE)
+options(scipen=999, digits=4)
+
+setwd('~/dronerf_classifier/')
+
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(stringr)
+library(tuneR)
+library(seewave)
+library(png)
+
+DATA_PATH <- './data'
+
+dir.create(DATA_PATH, showWarnings=FALSE)
+```
+
+# Introduction
+
+
+
+
+# Load data
+
+Data source: 
+
+[Source] has found that using the low band only is perfectly sufficient to capture information, so we will only load the lower band. Sample rate is given as 40 ?? in [source[]]
+
+To conserve local memory, each file will be processed individually, put into a 320x320 pixel spectogram, and then saved.
+
+Create necessary directories (here input refers to input to classifier):
+
+```{r}
+dronerf_path <- file.path(DATA_PATH, 'dronerf')
+dir.create(dronerf_path, showWarnings=FALSE)
+
+input_path <- file.path(DATA_PATH, 'input')
+dir.create(input_path, showWarnings=FALSE)
+
+input_files <- file.path(dronerf_path, list.files(dronerf_path, recursive=TRUE))
+
+lower <- input_files[str_detect(input_files, '_L[\\d]?/') == TRUE]
+
+sample_rate <- 40 * 10^6
+```
+
+
+
+## Create spectograms
+
+Process lower half:
+
+```{r}
+name_map <- list('AR drone' = 'ar',
+                 'Bepop drone' = 'bepop',
+                 'Background RF activites' = 'bg',
+                 'Phantom drone' = 'phantom')
+                 
+for (f in lower) {
+  
+   print(f)
+  
+  # start for loop
+  f_prefix <- str_extract(f, 'AR drone|Bepop drone|Background RF activites|Phantom drone')  # NOTE the typo in 'activites'
+  drone <- name_map[[ f_prefix ]]
+  
+  f_suffix <- str_match_all(f, '(\\d{5}L_\\d+).csv$')[[1]][2]
+  
+  sig <- scan(f, what=character(1), sep=',') %>%
+    as.numeric %>%
+    tuneR::Wave(samp.rate=sample_rate) %>%
+    tuneR::normalize(unit = c('1'))
+  
+  y = sig@left
+  
+  N <- 32e-3*sample_rate
+  
+  # computing a spectogram of the audio showing how frequency varies with time
+  p <- seewave::ggspectro(y, sample_rate, wl = N, wn = "hamming", ovlp = 50, fftw = T)+
+    geom_tile(aes(fill = amplitude))+
+    scale_fill_gradient(low = "white", high = "black") +
+    theme(axis.line=element_blank(),
+          axis.text.x=element_blank(),
+          axis.text.y=element_blank(),
+          axis.ticks=element_blank(),
+          axis.title.x=element_blank(),
+          axis.title.y=element_blank(),
+          legend.position='none',
+          panel.background=element_blank(),
+          panel.border=element_blank(),
+          panel.grid.major=element_blank(),
+          panel.grid.minor=element_blank(),
+          plot.background=element_blank())
+  
+  export_path <- file.path(input_path, drone)
+  dir.create(export_path, showWarnings=FALSE)
+  
+  export_file <- paste(file.path(export_path, f_suffix), '.png', sep='')
+  
+  ggsave(export_file, p, width=227, height=227, units='px')
+  
+}
+```
+
+
+
+## Spectograms to feature matrix
+
+```{r}
+standardize <- function(x) (x - min(x)) / (max(x) - min(x))
+
+X_list <- list()
+y <- list()
+
+for (drone in c('ar', 'bepop', 'bg', 'phantom')) {
+  
+  pngs_path <- file.path(input_path, drone)
+  drone_pngs_path <- file.path(pngs_path, list.files(pngs_path))
+  
+  for (png_path in drone_pngs_path) {
+    
+    print(png_path)
+    
+    img <- readPNG(png_path)
+    x <- img[,,1]
+    x <- t(apply(x, 2, rev))  # rotate: not necessary except for plotting correct orientation
+    x <- standardize(x)
+    dim(x) <- c(1, 227*227)
+    
+    X_list[[1+length(X_list)]] <- x
+    y[[1+length(y)]] <- drone
+    rm(x)
+    
+  }
+  
+}
+
+# rm(sig, p, img); gc()
+
+
+X <- do.call(rbind, X_list) %>% data.frame
+colnames(X) <- paste('p', 1:(227*227), sep='')
+
+rm(X_list); gc()
+
+X <- X[,20000:35000]
+
+df <- X %>%
+  mutate(y=unlist(y)) %>%
+  select(y, everything())
+
+```
+
+
+
+```{r}
+# df <- X %>%
+#   mutate(y=unlist(y)) %>%
+#   select(y, everything())
+# 
+# table(df$y)
+# 
+# ggplot(df, aes(x=p21707, fill=y)) +
+#   geom_density(alpha=0.3)
+```
+
+
+
+
+# Classifier: Drone or no drone
+
+## Build test and training sets
+
+We will use k-fold corss validation, but retain 20% of the dataset for final testing
+
+```{r}
+df <- df %>%
+  mutate(y = as.factor(if_else(y == 'bg', 'bg', 'drone')))
+
+set.seed(1804)
+train_ix <- createDataPartition(df$y, p=0.8, list=FALSE) %>% as.numeric
+
+# check distributions are similar
+prop.table(table(df$y))
+prop.table(table(df$y[train_ix]))
+prop.table(table(df$y[-train_ix]))
+```
+
+
+
+## $M_0$: Elasticnet
+
+```{r}
+cv5 <- trainControl(method='repeatedcv',
+                     number=5,
+                     classProbs=TRUE,
+                     sampling='down',
+                     summaryFunction = twoClassSummary,
+                     savePredictions=TRUE)
+
+m0_grid <- expand.grid(alpha = c(1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0.1, 1),
+                       lambda = c((1:5)/10))
+
+m0 <- train(y ~ .,
+            preProc = c('nzv', "center", "scale"),
+            data=df, 
+            tuneGrid=m0_grid,
+            method='glmnet',
+            trControl=cv5,
+            metric='ROC')
+
+# m0_threshold <- thresholder(m0, 
+#                             threshold = seq(.05, .95, by = 0.05), 
+#                             final=TRUE)
+#  
+# m0_threshold
+ 
+m0
+
+# Create confusion matrix, based on best cutoff point revealed by threshold
+m0_pred <- predict(m0, df)
+
+confusionMatrix(m0_pred, df$y)
+
+```
+
+
+
+
