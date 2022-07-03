@@ -2,7 +2,7 @@
 
 RPubs document: [https://rpubs.com/benhorvath/dronerf_classifier](https://rpubs.com/benhorvath/dronerf_classifier)
 
-This brief note puts together a couple (non-deep learning) algorithms to classify RF signals using a small open-source data set.This work agrees with Medaiyese, et al. (2021) that large labeled data sets and complicated deep learning may not be essential for classifying drone RF signals.
+This brief note puts together a couple (non-deep learning) algorithms to classify RF signals using a small open-source data set. This work agrees with Medaiyese, et al. (2021) that large labeled data sets and complicated deep learning may not be essential for classifying drone RF signals.
 
 The data is available for download at: [`DroneRF` dataset: A dataset of drones for RF-based detection, classification, and identification](https://data.mendeley.com/datasets/f4c2b4n755/1). Uncompressed, it is 43 gigabytes in size. It is summarized in Allahham, et al. (2019):
 
