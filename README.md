@@ -30,8 +30,6 @@ Model performance could easily be improved with slightly more powerful hardware,
 
 ## References
 
-# References
-
 * Allahham, MHD Saria, Mohammad F. Al-Sa'd, Abdulla Al-Ali, Amr Mohamed, Tamer Khattab, and Aiman Erbad. 2019. '`DroneRF` dataset: A dataset of drones for RF-based detection, classification and identification.' _Data in Brief_ 26: 104313.
 
 * Friedman, Jerome, Trevor Hastie, and Rob Tibshirani. 2010. 'Regularization paths for generalized linear models via coordinate descent.' _Journal of Statistical Software_ 33, no. 1: 1.
