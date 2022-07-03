@@ -1,5 +1,6 @@
 data/*
 *.DS_Store
+rsconnect/*
 
 # History files
 .Rhistory

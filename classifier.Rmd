@@ -1,8 +1,17 @@
 ---
-title: "Algorithm to detect presence of drones using RF signals"
+title: "Classifying drone RF signals with statistical learning and a small data set"
 author: "Ben Horvath"
-date: "6/28/2022"
-output: html_document
+date: "July 2022"
+output:
+  html_document:
+    toc: true
+    number_sections: true
+    theme: null
+    css: ./static/architect.css
+    template: ./static/architect.html
+    pandoc_args: [
+      "--mathjax", "",
+      "--variable", "mathjax-url:https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"]
 ---
 
 ```{r setup, include=FALSE}
@@ -11,6 +20,7 @@ options(scipen=999, digits=4)
 
 setwd('~/dronerf_classifier/')
 
+library(caret)
 library(dplyr)
 library(ggplot2)
 library(knitr)
@@ -22,20 +32,51 @@ library(png)
 DATA_PATH <- './data'
 
 dir.create(DATA_PATH, showWarnings=FALSE)
+
+IMG_SIZE <- 122
 ```
 
-# Introduction
+This brief note puts together a couple (non-deep learning) algorithms to classify RF signals using a small open-source data set.This work agrees with Medaiyese, et al. (2021) that large labeled data sets and complicated deep learning may not be essential for classifying drone RF signals.
+
+GitHub repo: [http://github.com/benhorvath/dronerf_classifier](http://github.com/benhorvath/dronerf_classifier/)
+
+
+
+# Data and summary
+
+The data is available for download at: [`DroneRF` dataset: A dataset of drones for RF-based detection, classification, and identification](https://data.mendeley.com/datasets/f4c2b4n755/1). Uncompressed, it is 43 gigabytes in size. It is summarized in Allahham, et al. (2019):
+
+> ... the `DroneRF` dataset: a radio frequency (RF) based dataset of drones functioning in different modes, including off, on and connected, hovering, flying, and video recording. The dataset contains recordings of RF activities, composed of 227 recorded segments collected from 3 different drones, as well as recordings of background RF activities with no drones. The data has been collected by RF receivers that intercepts the drone's communications with the flight control module. The receivers are connected to two laptops, via PCIe cables, that runs a program responsible for fetching, processing and storing the sensed RF data in a database. 
+
+The data set is very clean, collected under laboratory conditions using expensive scientific equipment. The entire 2.4 Ghz wifi bandwidth was monitored with two RF receivers, producing both a lower and higher half of the frequency band. Medaiyese, et al. (2021) determined the lower alone contained sufficient information for good classification performance. Each of the 227 records is equal to or less than 10 seconds of recording, indicating this data set is fairly small.
+
+After downloading and decompressing the data, the first step is to process the records and transform them into spectrograms of size $122 x 122$ pixels. Each spectrograms' pixel values (intensity) is taken, and then converted into a $1 x (122*122) = 1 x 14,884$ matrix. This produces a feature  matrix appropriate for input to algorithms. The data is split into a training partition and a final test partition. R's `caret` library is used to train several algorithms amenable to $n << p$ classification tasks with $5-$fold cross-validation. These are GLM with ElasticNet regularization (Zou and Hastie 2005; Friedman, Hastie, and Tibshirani 2010) and Random Forest. Performance is quite satisfactory on both binary and multi-class tasks, especially so considered the limited hardware thrown at the problem and the size of the data set. This work agrees with Medaiyese, et al. (2021) that large labeled data sets and complicated deep learning may not be essential for classifying drone RF signals.
+
+Three models are developed and tested on a reserved hold-out set:
+
+* $M_0$: Binary task, binomial GLM with ElasticNet regularization (R library: `glmnet`); hold-out performance:
+  - precision: 0.89
+  - recall: 1.0
+  - F-score: 0.94
+  - balanced accuracy: 0.99
+* $M_1$: Binary task, Random Forest (R library: `ranger`); hold-out performance:
+  - precision: 0.94
+  - recall: 1.0
+  - F-score: 0.97
+  - balanced accuracy: 0.99
+* $M_2$: Multiclass task, Random Forest; hold-out performance:
+  - mean balanced accuracy: 0.91
+  - mean sensitivity: 0.88
+  - mean specificity: 0.94
+
+Model performance could easily be improved with slightly more powerful hardware, which would allow spectograms to encode more information, i.e., larger than $122 x 122$ pixels.
 
 
 
 
-# Load data
+# Load and process data
 
-Data source: 
-
-[Source] has found that using the low band only is perfectly sufficient to capture information, so we will only load the lower band. Sample rate is given as 40 ?? in [source[]]
-
-To conserve local memory, each file will be processed individually, put into a 320x320 pixel spectogram, and then saved.
+The process here is to 'summarize' each ~100 megabyte RF recording as a ~4 kilobyte spectrogram PNG image, and then the spectrogram into a ~100 kilobyte $1 x (122*122)$ matrix.
 
 Create necessary directories (here input refers to input to classifier):
 
@@ -55,11 +96,11 @@ sample_rate <- 40 * 10^6
 
 
 
-## Create spectograms
+## Create spectrograms
 
-Process lower half:
+Process lower half and save as PNG to disk:
 
-```{r}
+```{r, eval=FALSE}
 name_map <- list('AR drone' = 'ar',
                  'Bepop drone' = 'bepop',
                  'Background RF activites' = 'bg',
@@ -67,9 +108,6 @@ name_map <- list('AR drone' = 'ar',
                  
 for (f in lower) {
   
-   print(f)
-  
-  # start for loop
   f_prefix <- str_extract(f, 'AR drone|Bepop drone|Background RF activites|Phantom drone')  # NOTE the typo in 'activites'
   drone <- name_map[[ f_prefix ]]
   
@@ -84,10 +122,10 @@ for (f in lower) {
   
   N <- 32e-3*sample_rate
   
-  # computing a spectogram of the audio showing how frequency varies with time
-  p <- seewave::ggspectro(y, sample_rate, wl = N, wn = "hamming", ovlp = 50, fftw = T)+
+  # ccompute spectorgram
+  p <- seewave::ggspectro(y, sample_rate, wl=N, wn='hamming', ovlp=50, fftw=TRUE) +
     geom_tile(aes(fill = amplitude))+
-    scale_fill_gradient(low = "white", high = "black") +
+    scale_fill_gradient(low='white', high='black') +
     theme(axis.line=element_blank(),
           axis.text.x=element_blank(),
           axis.text.y=element_blank(),
@@ -106,14 +144,16 @@ for (f in lower) {
   
   export_file <- paste(file.path(export_path, f_suffix), '.png', sep='')
   
-  ggsave(export_file, p, width=227, height=227, units='px')
+  ggsave(export_file, p, width=IMG_SIZE, height=IMG_SIZE, units='px')
   
 }
 ```
 
 
 
-## Spectograms to feature matrix
+## Spectrograms to feature matrix
+
+Convert each PNG to a matrix, then combine to form a feature matrix $X$ for machine learning:
 
 ```{r}
 standardize <- function(x) (x - min(x)) / (max(x) - min(x))
@@ -128,51 +168,27 @@ for (drone in c('ar', 'bepop', 'bg', 'phantom')) {
   
   for (png_path in drone_pngs_path) {
     
-    print(png_path)
-    
     img <- readPNG(png_path)
     x <- img[,,1]
     x <- t(apply(x, 2, rev))  # rotate: not necessary except for plotting correct orientation
     x <- standardize(x)
-    dim(x) <- c(1, 227*227)
+    dim(x) <- c(1, IMG_SIZE*IMG_SIZE)
     
     X_list[[1+length(X_list)]] <- x
     y[[1+length(y)]] <- drone
-    rm(x)
     
   }
   
 }
 
-# rm(sig, p, img); gc()
+rm(x, sig, p); gc()  # free up some memory
 
-
+# Combine into single matrix for input to algorithm
 X <- do.call(rbind, X_list) %>% data.frame
-colnames(X) <- paste('p', 1:(227*227), sep='')
+colnames(X) <- paste('p', 1:(IMG_SIZE*IMG_SIZE), sep='')
 
 rm(X_list); gc()
-
-X <- X[,20000:35000]
-
-df <- X %>%
-  mutate(y=unlist(y)) %>%
-  select(y, everything())
-
 ```
-
-
-
-```{r}
-# df <- X %>%
-#   mutate(y=unlist(y)) %>%
-#   select(y, everything())
-# 
-# table(df$y)
-# 
-# ggplot(df, aes(x=p21707, fill=y)) +
-#   geom_density(alpha=0.3)
-```
-
 
 
 
@@ -180,14 +196,23 @@ df <- X %>%
 
 ## Build test and training sets
 
-We will use k-fold corss validation, but retain 20% of the dataset for final testing
+We will use $5-$fold cross-validation to train and tune the learning algorithms, but retain 25% of the data set for final testing.
+
+For all models, under-sampling will be used to balance the classes. 
 
 ```{r}
+df <- X %>%
+  mutate(y=unlist(y)) %>%
+  select(y, everything())
+
 df <- df %>%
   mutate(y = as.factor(if_else(y == 'bg', 'bg', 'drone')))
 
 set.seed(1804)
-train_ix <- createDataPartition(df$y, p=0.8, list=FALSE) %>% as.numeric
+train_ix <- createDataPartition(df$y, p=0.75, list=FALSE) %>% as.numeric
+
+train <- df[train_ix,]
+test <- df[-train_ix,]
 
 # check distributions are similar
 prop.table(table(df$y))
@@ -197,9 +222,13 @@ prop.table(table(df$y[-train_ix]))
 
 
 
-## $M_0$: Elasticnet
+## $M_0$: Binomial GLM with Elasticnet regularization
+
+Preprocessing _occurs within each fold_, and includes: Eliminating near-zero-variance predictors, scaling and centering:
 
 ```{r}
+Sys.time()
+
 cv5 <- trainControl(method='repeatedcv',
                      number=5,
                      classProbs=TRUE,
@@ -208,31 +237,137 @@ cv5 <- trainControl(method='repeatedcv',
                      savePredictions=TRUE)
 
 m0_grid <- expand.grid(alpha = c(1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0.1, 1),
-                       lambda = c((1:5)/10))
+                       lambda = c((1:5) / 10))
 
 m0 <- train(y ~ .,
-            preProc = c('nzv', "center", "scale"),
-            data=df, 
+            preProc = c('nzv', 'center', 'scale'),
+            data=train, 
             tuneGrid=m0_grid,
             method='glmnet',
             trControl=cv5,
             metric='ROC')
 
-# m0_threshold <- thresholder(m0, 
-#                             threshold = seq(.05, .95, by = 0.05), 
-#                             final=TRUE)
-#  
-# m0_threshold
- 
+Sys.time()
+
 m0
+```
 
-# Create confusion matrix, based on best cutoff point revealed by threshold
-m0_pred <- predict(m0, df)
+ 1e-04  0.5     0.9928571  1.0000000  0.9142857
 
-confusionMatrix(m0_pred, df$y)
+## $M_1$: Random forest
+
+```{r}
+Sys.time()
+
+m1_cv <- trainControl(method='repeatedcv',
+                     number=5,
+                     classProbs=TRUE,
+                     sampling='down',
+                     summaryFunction = twoClassSummary,
+                     savePredictions=TRUE)
+
+# common mtry values are sqrt(p) and log2(p)
+m1_tune <- expand.grid(mtry=c(14, 122), splitrule=c('gini'), min.node.size=c(5, 10))
+
+m1 <- train(y ~ .,
+            data=train,
+            tuneGrid=m1_tune,
+            method='ranger',
+            num.trees=1000,
+            trControl=m1_cv,
+            metric='ROC')
+
+Sys.time()
+
+m1
+```
+
+## Evaluating $M_0$ and $M_1$ on hold out set
+
+Performance metrics for both algorithms on the same hold-out set is presented below. Both perform similarly, with a slight edge to the Random Forest model, which also trains moderately faster. 
+
+
+```{r}
+m0_pred <- predict(m0, train)
+m1_pred <- predict(m1, train)
+
+confusionMatrix(m0_pred, train$y)
+confusionMatrix(m1_pred, train$y)
+
 
 ```
 
+
+# Classifier: Drone model + background
+
+
+## Build test and training sets
+
+```{r}
+df <- X %>%
+  mutate(y=unlist(y)) %>%
+  select(y, everything())
+
+df <- df %>%
+  mutate(y = as.factor(y))
+
+set.seed(1804)
+train_ix <- createDataPartition(df$y, p=0.75, list=FALSE) %>% as.numeric
+
+train <- df[train_ix,]
+test <- df[-train_ix,]
+```
+
+
+## $M_2$: Random forest: All drones v. background
+
+```{r}
+Sys.time()
+
+m2_cv <- trainControl(method='repeatedcv',
+                     number=5,
+                     classProbs=TRUE,
+                     sampling='down',
+                     summaryFunction = multiClassSummary,
+                     savePredictions=TRUE)
+
+# common mtry values are sqrt(p) and log2(p)
+m2_tune <- expand.grid(mtry=c(14, 122), splitrule=c('gini'), min.node.size=c(5, 10))
+
+m2 <- train(y ~ .,
+            data=train,
+            tuneGrid=m2_tune,
+            method='ranger',
+            num.trees=1000,
+            trControl=m2_cv,
+            metric='AUC')
+
+Sys.time()
+
+m2
+```
+
+## Evaluating $M_2$ on hold out set
+
+$M_2$ performs less successfully than the previous models on binary target, but still does reasonably well. 
+
+```{r}
+m2_pred <- predict(m2, train)
+
+confusionMatrix(m2_pred, train$y)
+```
+
+
+
+# References
+
+* Allahham, MHD Saria, Mohammad F. Al-Sa'd, Abdulla Al-Ali, Amr Mohamed, Tamer Khattab, and Aiman Erbad. 2019. '`DroneRF` dataset: A dataset of drones for RF-based detection, classification and identification.' _Data in Brief_ 26: 104313.
+
+* Friedman, Jerome, Trevor Hastie, and Rob Tibshirani. 2010. 'Regularization paths for generalized linear models via coordinate descent.' _Journal of Statistical Software_ 33, no. 1: 1.
+
+* Medaiyese, Olusiji O., Abbas Syed, and Adrian P. Lauf. 2021. 'Machine learning framework for RF-based drone detection and identification system.' _2021 2nd International Conference on Smart Cities, Automation \& Intelligent Computing Systems_. IEEE.
+
+* Zou, Hui, and Trevor Hastie. 2005. 'Regularization and variable selection via the elastic net.' _Journal of the Royal Statistical Society: Series B (Statistical Methodology)_ 67, no. 2: 301--20.
 
 
 
