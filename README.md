@@ -11,19 +11,19 @@ The data is available for download at: [`DroneRF` dataset: A dataset of drones f
 Three models are developed and tested on a reserved hold-out set:
 
 * $M_0$: Binary task, binomial GLM with ElasticNet regularization (R library: `glmnet`); hold-out performance:
-  - precision: 0.89
+  - precision: 0.67
   - recall: 1.0
-  - F-score: 0.94
-  - balanced accuracy: 0.99
+  - F-score: 0.80
+  - balanced accuracy: 0.95
 * $M_1$: Binary task, Random Forest (R library: `ranger`); hold-out performance:
-  - precision: 0.94
+  - precision: 0.91
   - recall: 1.0
-  - F-score: 0.97
+  - F-score: 0.95
   - balanced accuracy: 0.99
 * $M_2$: Multiclass task, Random Forest; hold-out performance:
-  - mean balanced accuracy: 0.91
-  - mean sensitivity: 0.88
-  - mean specificity: 0.94
+  - mean balanced accuracy: 0.88
+  - mean sensitivity: 0.83
+  - mean specificity: 0.92
 
 Model performance could easily be improved with slightly more powerful hardware, which would allow spectograms to encode more information, i.e., larger than $122 x 122$ pixels.
 
