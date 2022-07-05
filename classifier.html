@@ -149,23 +149,23 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <ul>
 <li><span class="math inline">\(M_0\)</span>: Binary task, binomial GLM with ElasticNet regularization (R library: <code>glmnet</code>); hold-out performance:
 <ul>
-<li>precision: 0.89</li>
+<li>precision: 0.67</li>
 <li>recall: 1.0</li>
-<li>F-score: 0.94</li>
-<li>balanced accuracy: 0.99</li>
+<li>F-score: 0.80</li>
+<li>balanced accuracy: 0.95</li>
 </ul></li>
 <li><span class="math inline">\(M_1\)</span>: Binary task, Random Forest (R library: <code>ranger</code>); hold-out performance:
 <ul>
-<li>precision: 0.94</li>
+<li>precision: 0.91</li>
 <li>recall: 1.0</li>
-<li>F-score: 0.97</li>
+<li>F-score: 0.95</li>
 <li>balanced accuracy: 0.99</li>
 </ul></li>
 <li><span class="math inline">\(M_2\)</span>: Multiclass task, Random Forest; hold-out performance:
 <ul>
-<li>mean balanced accuracy: 0.91</li>
-<li>mean sensitivity: 0.88</li>
-<li>mean specificity: 0.94</li>
+<li>mean balanced accuracy: 0.88</li>
+<li>mean sensitivity: 0.83</li>
+<li>mean specificity: 0.92</li>
 </ul></li>
 </ul>
 <p>Model performance could easily be improved with slightly more powerful hardware, which would allow spectograms to encode more information, i.e., larger than <span class="math inline">\(122 x 122\)</span> pixels.</p>
@@ -265,16 +265,16 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(x, sig, p); <span class="fu">gc</span>()  <span class="co"># free up some memory</span></span></code></pre></div>
 <pre><code>##           used  (Mb) gc trigger  (Mb) limit (Mb) max used  (Mb)
-## Ncells 2313071 123.6    4422612 236.2         NA  4207543 224.8
-## Vcells 7316943  55.9   12335280  94.2      16384 10201084  77.9</code></pre>
+## Ncells 2313072 123.6    4421975 236.2         NA  4209474 224.9
+## Vcells 7316947  55.9   12335285  94.2      16384 10201088  77.9</code></pre>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Combine into single matrix for input to algorithm</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">do.call</span>(rbind, X_list) <span class="sc">%&gt;%</span> data.frame</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(X) <span class="ot">&lt;-</span> <span class="fu">paste</span>(<span class="st">&#39;p&#39;</span>, <span class="dv">1</span><span class="sc">:</span>(IMG_SIZE<span class="sc">*</span>IMG_SIZE), <span class="at">sep=</span><span class="st">&#39;&#39;</span>)</span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(X_list); <span class="fu">gc</span>()</span></code></pre></div>
 <pre><code>##           used  (Mb) gc trigger  (Mb) limit (Mb) max used  (Mb)
-## Ncells 2343300 125.2    4422612 236.2         NA  4207543 224.8
-## Vcells 7363005  56.2   16818878 128.4      16384 15306277 116.8</code></pre>
+## Ncells 2343301 125.2    4421975 236.2         NA  4209474 224.9
+## Vcells 7363009  56.2   16818882 128.4      16384 15306281 116.8</code></pre>
 </div>
 </div>
 <div id="classifier-drone-or-no-drone" class="section level1" number="3">
@@ -314,7 +314,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h2 number="3.2"><span class="header-section-number">3.2</span> <span class="math inline">\(M_0\)</span>: Binomial GLM with Elasticnet regularization</h2>
 <p>Preprocessing <em>occurs within each fold</em>, and includes: Eliminating near-zero-variance predictors, scaling and centering:</p>
 <div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Sys.time</span>()</span></code></pre></div>
-<pre><code>## [1] &quot;2022-07-03 15:57:34 EDT&quot;</code></pre>
+<pre><code>## [1] &quot;2022-07-05 14:47:18 EDT&quot;</code></pre>
 <div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>cv5 <span class="ot">&lt;-</span> <span class="fu">trainControl</span>(<span class="at">method=</span><span class="st">&#39;repeatedcv&#39;</span>,</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>                     <span class="at">number=</span><span class="dv">5</span>,</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>                     <span class="at">classProbs=</span><span class="cn">TRUE</span>,</span>
@@ -334,7 +334,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>            <span class="at">metric=</span><span class="st">&#39;ROC&#39;</span>)</span>
 <span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a><span class="fu">Sys.time</span>()</span></code></pre></div>
-<pre><code>## [1] &quot;2022-07-03 16:04:32 EDT&quot;</code></pre>
+<pre><code>## [1] &quot;2022-07-05 14:56:31 EDT&quot;</code></pre>
 <div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>m0</span></code></pre></div>
 <pre><code>## glmnet 
 ## 
@@ -388,7 +388,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div id="m_1-random-forest" class="section level2" number="3.3">
 <h2 number="3.3"><span class="header-section-number">3.3</span> <span class="math inline">\(M_1\)</span>: Random forest</h2>
 <div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Sys.time</span>()</span></code></pre></div>
-<pre><code>## [1] &quot;2022-07-03 16:04:32 EDT&quot;</code></pre>
+<pre><code>## [1] &quot;2022-07-05 14:56:31 EDT&quot;</code></pre>
 <div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>m1_cv <span class="ot">&lt;-</span> <span class="fu">trainControl</span>(<span class="at">method=</span><span class="st">&#39;repeatedcv&#39;</span>,</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>                     <span class="at">number=</span><span class="dv">5</span>,</span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>                     <span class="at">classProbs=</span><span class="cn">TRUE</span>,</span>
@@ -408,7 +408,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>            <span class="at">metric=</span><span class="st">&#39;ROC&#39;</span>)</span>
 <span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a><span class="fu">Sys.time</span>()</span></code></pre></div>
-<pre><code>## [1] &quot;2022-07-03 16:07:57 EDT&quot;</code></pre>
+<pre><code>## [1] &quot;2022-07-05 15:00:20 EDT&quot;</code></pre>
 <div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>m1</span></code></pre></div>
 <pre><code>## Random Forest 
 ## 
@@ -437,64 +437,64 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div id="evaluating-m_0-and-m_1-on-hold-out-set" class="section level2" number="3.4">
 <h2 number="3.4"><span class="header-section-number">3.4</span> Evaluating <span class="math inline">\(M_0\)</span> and <span class="math inline">\(M_1\)</span> on hold out set</h2>
 <p>Performance metrics for both algorithms on the same hold-out set is presented below. Both perform similarly, with a slight edge to the Random Forest model, which also trains moderately faster.</p>
-<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>m0_pred <span class="ot">&lt;-</span> <span class="fu">predict</span>(m0, train)</span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>m1_pred <span class="ot">&lt;-</span> <span class="fu">predict</span>(m1, train)</span>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>m0_pred <span class="ot">&lt;-</span> <span class="fu">predict</span>(m0, test)</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>m1_pred <span class="ot">&lt;-</span> <span class="fu">predict</span>(m1, test)</span>
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="fu">confusionMatrix</span>(m0_pred, train<span class="sc">$</span>y)</span></code></pre></div>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="fu">confusionMatrix</span>(m0_pred, test<span class="sc">$</span>y)</span></code></pre></div>
 <pre><code>## Confusion Matrix and Statistics
 ## 
 ##           Reference
-## Prediction  bg drone
-##      bg     31    16
-##      drone   0   124
-##                                         
-##                Accuracy : 0.906         
-##                  95% CI : (0.853, 0.946)
-##     No Information Rate : 0.819         
-##     P-Value [Acc &gt; NIR] : 0.001033      
-##                                         
-##                   Kappa : 0.738         
-##                                         
-##  Mcnemar&#39;s Test P-Value : 0.000177      
-##                                         
-##             Sensitivity : 1.000         
-##             Specificity : 0.886         
-##          Pos Pred Value : 0.660         
-##          Neg Pred Value : 1.000         
-##              Prevalence : 0.181         
-##          Detection Rate : 0.181         
-##    Detection Prevalence : 0.275         
-##       Balanced Accuracy : 0.943         
-##                                         
-##        &#39;Positive&#39; Class : bg            
+## Prediction bg drone
+##      bg    10     5
+##      drone  0    41
+##                                        
+##                Accuracy : 0.911        
+##                  95% CI : (0.804, 0.97)
+##     No Information Rate : 0.821        
+##     P-Value [Acc &gt; NIR] : 0.0501       
+##                                        
+##                   Kappa : 0.745        
+##                                        
+##  Mcnemar&#39;s Test P-Value : 0.0736       
+##                                        
+##             Sensitivity : 1.000        
+##             Specificity : 0.891        
+##          Pos Pred Value : 0.667        
+##          Neg Pred Value : 1.000        
+##              Prevalence : 0.179        
+##          Detection Rate : 0.179        
+##    Detection Prevalence : 0.268        
+##       Balanced Accuracy : 0.946        
+##                                        
+##        &#39;Positive&#39; Class : bg           
 ## </code></pre>
-<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">confusionMatrix</span>(m1_pred, train<span class="sc">$</span>y)</span></code></pre></div>
+<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">confusionMatrix</span>(m1_pred, test<span class="sc">$</span>y)</span></code></pre></div>
 <pre><code>## Confusion Matrix and Statistics
 ## 
 ##           Reference
-## Prediction  bg drone
-##      bg     31     2
-##      drone   0   138
-##                                           
-##                Accuracy : 0.988           
-##                  95% CI : (0.958, 0.999)  
-##     No Information Rate : 0.819           
-##     P-Value [Acc &gt; NIR] : 0.00000000000105
-##                                           
-##                   Kappa : 0.962           
-##                                           
-##  Mcnemar&#39;s Test P-Value : 0.48            
-##                                           
-##             Sensitivity : 1.000           
-##             Specificity : 0.986           
-##          Pos Pred Value : 0.939           
-##          Neg Pred Value : 1.000           
-##              Prevalence : 0.181           
-##          Detection Rate : 0.181           
-##    Detection Prevalence : 0.193           
-##       Balanced Accuracy : 0.993           
-##                                           
-##        &#39;Positive&#39; Class : bg              
+## Prediction bg drone
+##      bg    10     1
+##      drone  0    45
+##                                     
+##                Accuracy : 0.982     
+##                  95% CI : (0.904, 1)
+##     No Information Rate : 0.821     
+##     P-Value [Acc &gt; NIR] : 0.000217  
+##                                     
+##                   Kappa : 0.941     
+##                                     
+##  Mcnemar&#39;s Test P-Value : 1.000000  
+##                                     
+##             Sensitivity : 1.000     
+##             Specificity : 0.978     
+##          Pos Pred Value : 0.909     
+##          Neg Pred Value : 1.000     
+##              Prevalence : 0.179     
+##          Detection Rate : 0.179     
+##    Detection Prevalence : 0.196     
+##       Balanced Accuracy : 0.989     
+##                                     
+##        &#39;Positive&#39; Class : bg        
 ## </code></pre>
 </div>
 </div>
@@ -518,7 +518,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div id="m_2-random-forest-all-drones-v.-background" class="section level2" number="4.2">
 <h2 number="4.2"><span class="header-section-number">4.2</span> <span class="math inline">\(M_2\)</span>: Random forest: All drones v. background</h2>
 <div class="sourceCode" id="cb30"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Sys.time</span>()</span></code></pre></div>
-<pre><code>## [1] &quot;2022-07-03 16:08:21 EDT&quot;</code></pre>
+<pre><code>## [1] &quot;2022-07-05 15:00:38 EDT&quot;</code></pre>
 <div class="sourceCode" id="cb32"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>m2_cv <span class="ot">&lt;-</span> <span class="fu">trainControl</span>(<span class="at">method=</span><span class="st">&#39;repeatedcv&#39;</span>,</span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>                     <span class="at">number=</span><span class="dv">5</span>,</span>
 <span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>                     <span class="at">classProbs=</span><span class="cn">TRUE</span>,</span>
@@ -538,7 +538,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a>            <span class="at">metric=</span><span class="st">&#39;AUC&#39;</span>)</span>
 <span id="cb32-18"><a href="#cb32-18" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a><span class="fu">Sys.time</span>()</span></code></pre></div>
-<pre><code>## [1] &quot;2022-07-03 16:13:20 EDT&quot;</code></pre>
+<pre><code>## [1] &quot;2022-07-05 15:06:11 EDT&quot;</code></pre>
 <div class="sourceCode" id="cb34"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>m2</span></code></pre></div>
 <pre><code>## Random Forest 
 ## 
@@ -577,40 +577,40 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div id="evaluating-m_2-on-hold-out-set" class="section level2" number="4.3">
 <h2 number="4.3"><span class="header-section-number">4.3</span> Evaluating <span class="math inline">\(M_2\)</span> on hold out set</h2>
 <p><span class="math inline">\(M_2\)</span> performs less successfully than the previous models on binary target, but still does reasonably well.</p>
-<div class="sourceCode" id="cb36"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>m2_pred <span class="ot">&lt;-</span> <span class="fu">predict</span>(m2, train)</span>
+<div class="sourceCode" id="cb36"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>m2_pred <span class="ot">&lt;-</span> <span class="fu">predict</span>(m2, test)</span>
 <span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a><span class="fu">confusionMatrix</span>(m2_pred, train<span class="sc">$</span>y)</span></code></pre></div>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a><span class="fu">confusionMatrix</span>(m2_pred, test<span class="sc">$</span>y)</span></code></pre></div>
 <pre><code>## Confusion Matrix and Statistics
 ## 
 ##           Reference
 ## Prediction ar bepop bg phantom
-##    ar      53    17  0       0
-##    bepop    8    45  0       0
-##    bg       0     0 29       0
-##    phantom  0     1  2      16
+##    ar      16     6  0       0
+##    bepop    4    15  0       0
+##    bg       0     0 10       1
+##    phantom  0     0  0       4
 ## 
 ## Overall Statistics
-##                                              
-##                Accuracy : 0.836              
-##                  95% CI : (0.772, 0.888)     
-##     No Information Rate : 0.368              
-##     P-Value [Acc &gt; NIR] : &lt;0.0000000000000002
-##                                              
-##                   Kappa : 0.766              
-##                                              
-##  Mcnemar&#39;s Test P-Value : NA                 
+##                                          
+##                Accuracy : 0.804          
+##                  95% CI : (0.676, 0.898) 
+##     No Information Rate : 0.375          
+##     P-Value [Acc &gt; NIR] : 0.0000000000668
+##                                          
+##                   Kappa : 0.716          
+##                                          
+##  Mcnemar&#39;s Test P-Value : NA             
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: ar Class: bepop Class: bg Class: phantom
-## Sensitivity              0.869        0.714     0.935         1.0000
-## Specificity              0.845        0.926     1.000         0.9806
-## Pos Pred Value           0.757        0.849     1.000         0.8421
-## Neg Pred Value           0.921        0.847     0.986         1.0000
-## Prevalence               0.357        0.368     0.181         0.0936
-## Detection Rate           0.310        0.263     0.170         0.0936
-## Detection Prevalence     0.409        0.310     0.170         0.1111
-## Balanced Accuracy        0.857        0.820     0.968         0.9903</code></pre>
+## Sensitivity              0.800        0.714     1.000         0.8000
+## Specificity              0.833        0.886     0.978         1.0000
+## Pos Pred Value           0.727        0.789     0.909         1.0000
+## Neg Pred Value           0.882        0.838     1.000         0.9808
+## Prevalence               0.357        0.375     0.179         0.0893
+## Detection Rate           0.286        0.268     0.179         0.0714
+## Detection Prevalence     0.393        0.339     0.196         0.0714
+## Balanced Accuracy        0.817        0.800     0.989         0.9000</code></pre>
 </div>
 </div>
 <div id="references" class="section level1" number="5">
